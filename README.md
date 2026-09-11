@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # slan
 slan admin page
 
@@ -76,3 +77,7 @@ export default defineConfig([
 ])
 ```
 
+=======
+# SLAN-admin-frontend
+The admin frontend for the SLAN project
+>>>>>>> a41077b4aae6a3cac7637bf55db1f3e3184bdcde

@@ -1069,7 +1069,7 @@ export default function ManageCourses() {
             </svg>
           </span>
           <span className="text-xs sm:text-sm font-medium leading-tight">{toast}</span>
-        </div>
+        </div >
       )}
     </div>
   );

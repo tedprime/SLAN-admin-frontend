@@ -573,6 +573,7 @@ function UnitCreateModal({
 
       <Field label="Content" required error={errors.content}>
         <RichTextEditor
+          readingParts
           value={form.content}
           onChange={(html: string) => set("content", html)}
           placeholder="Main learning content for this unit"

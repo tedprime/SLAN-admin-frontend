@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import ReadingPartsControls from "./ReadingPartsControls";
+import { ReadingPageBreakNode } from "./ReadingPageBreakNode";
 import { Bold, Italic, Underline, Palette, ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -27,7 +29,7 @@ import {
   PASTE_COMMAND,
   COMMAND_PRIORITY_HIGH,
 } from "lexical";
-import type { NodeKey, ElementFormatType } from "lexical";
+import type { NodeKey, ElementFormatType, SerializedLexicalNode } from "lexical";
 import { $setBlocksType } from "@lexical/selection";
 import { $patchStyleText } from "@lexical/selection";
 import { HeadingNode, $createHeadingNode } from "@lexical/rich-text";
@@ -67,6 +69,7 @@ interface RichTextEditorProps {
   value: string; // html string
   onChange: (html: string) => void;
   placeholder?: string;
+  readingParts?: boolean;
 }
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
@@ -118,6 +121,10 @@ class CustomImageNode extends DecoratorNode<ReactNode> {
   static getType() { return "custom-image"; }
   static clone(n: CustomImageNode) { return new CustomImageNode(n.__src, n.__key); }
   constructor(src: string, key?: NodeKey) { super(key); this.__src = src; }
+  static importJSON(node: SerializedLexicalNode & Record<string, unknown>) {
+    return new CustomImageNode(typeof node.src === "string" ? node.src : "");
+  }
+  exportJSON() { return { ...super.exportJSON(), type: "custom-image", version: 1, src: this.__src }; }
   createDOM() { const d = document.createElement("span"); d.style.display = "inline-block"; return d; }
   updateDOM() { return false; }
   decorate() { return <ImageRenderer src={this.__src} nodeKey={this.getKey()} />; }
@@ -224,6 +231,11 @@ function cleanPastedNode(outDoc: Document, node: Node): Node[] {
   const el = node as HTMLElement;
   const tag = el.tagName.toLowerCase();
   if (PASTE_BLOCKED_TAGS.has(tag)) return [];
+  if (tag === "hr" && el.getAttribute("data-slan-page-break") === "true") {
+    const marker = outDoc.createElement("hr");
+    marker.setAttribute("data-slan-page-break", "true");
+    return [marker];
+  }
 
   const children: Node[] = [];
   el.childNodes.forEach(child => { children.push(...cleanPastedNode(outDoc, child)); });
@@ -1076,7 +1088,7 @@ function TableHoverControlsPlugin() {
   );
 }
 
-export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, placeholder, readingParts = false }: RichTextEditorProps) {
   // Shared between InitialHtmlPlugin (which sets it) and OnChangePlugin's
   // callback below (which reads and clears it), so the one editor.update()
   // that hydrates existing content on mount doesn't get reported to the
@@ -1094,11 +1106,12 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       tableCell: "my-cell",
       tableCellHeader: "my-cell-header",
     },
-    nodes: [HeadingNode, ListNode, ListItemNode, TableNode, TableRowNode, TableCellNode, CustomImageNode],
+    nodes: [HeadingNode, ListNode, ListItemNode, TableNode, TableRowNode, TableCellNode, CustomImageNode, ReadingPageBreakNode],
     onError: (e: Error) => console.error(e),
   };
   return (
     <LexicalComposer initialConfig={config as any}>
+      {readingParts && <ReadingPartsControls prepareHtml={inlineTableStyles} />}
       {/* Fixed-height editor shell: the toolbar (and every dropdown/select
           inside it — Heading, Font, Align, List, Line Height, Paragraph
           spacing, Table tools) stays pinned via `position: sticky` at the

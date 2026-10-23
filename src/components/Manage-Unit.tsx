@@ -359,6 +359,7 @@ function EditUnitForm({
           Content <span className="text-red-500">*</span>
         </label>
         <RichTextEditor
+          readingParts
           value={form.content}
           onChange={(html: string) => set("content", html)}
           placeholder="Main learning content for this unit"
